@@ -1,0 +1,375 @@
+---
+title: "HS631_Project_code"
+output: pdf_document
+---
+Name : Tejaswee Katanguri
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import libraries
+```{r libraries }
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(ggcorrplot)
+library(lattice)
+library(PASWR2)
+```
+
+Load the data
+
+```{r dataset }
+Dataset <- read.csv("C:\\Users\\nithi\\Downloads\\heart.csv")
+```
+View the first 6 rows of the dataset
+```{r}
+head(Dataset)
+```
+Exploratory data analysis
+
+Missing values
+```{r}
+sum(is.na(Dataset))
+```
+Fortunately there are no missing values in the dataset
+
+Summary statistics of the data
+```{r}
+summary(Dataset)
+```
+Changing the labels for better interpretation and visualizations
+```{r}
+Dataset1 <- Dataset %>%
+  rename("Age"=ï..age)
+```
+```{r}
+Heart_dataset <- Dataset1 %>%
+  mutate(sex = ifelse(sex == 1, "Male", "Female"),
+         fbs = ifelse(fbs == 1, ">120", "<=120"),
+         exang = ifelse(exang == 1, "Yes","No"),
+         restecg = ifelse(restecg == 0, "Normal",
+                          ifelse(restecg == 1, "Abnormality", "Probable or Definite")),
+         cp = ifelse(cp == 1, "Atypical Angina",
+                      ifelse(cp == 2, "Non-Anginal Pain", "Asymptomatic")),
+         target = ifelse(target == 1, "Heart Disease", "No Heart Disease"),
+         slope = ifelse(slope == 1, "Flat",
+                        ifelse(slope == 0,"Downsloping", "Upsloping")))
+
+Heart_dataset <- Heart_dataset %>%
+  mutate(ca = as.factor(ca),
+         thal = as.factor(thal)
+         )%>% 
+  mutate_if(is.character, as.factor) %>% 
+  dplyr::select(target, sex, fbs, exang, cp, restecg, slope, ca, thal, everything())
+```
+BoxPlot to find Outliers
+```{r}
+boxplot(Heart_dataset, horizontal = TRUE)
+boxplot(Heart_dataset[, 10:14], horizontal = TRUE)
+```
+For the variable trestbps, number of outliers is 9
+For the variable chol, number of outliers is 5
+For the variable age, number of outliers is 0
+For the variable oldpeak, number of outliers is 5
+For the variable thalach , number of outliers is 1
+
+Visualizations
+Distribution of Age, Cholestrol, thalach, oldpeak, trestbps 
+Distribution of Age
+```{r}
+ggplot(Heart_dataset, mapping = aes(Age), fill = Age)+
+  geom_histogram(binwidth = 1, color = "white", fill = "blue")+
+  xlab("Age") +
+  ylab("Count") +
+  ggtitle("Analysis of Age Distribution")
+```
+Age distribution graph is Normally distributed and the mean age is 54 years
+
+Distribution of Cholesterol
+```{r}
+ggplot(Heart_dataset, mapping = aes(chol), fill = chol)+
+  geom_histogram(binwidth = 2, color = "white", fill = "blue")+
+  xlab("Cholestrol") +
+  ylab("Count") +
+  ggtitle("Analysis of cholestrol Distribution")
+```
+Cholesterol – Looks like it is almost Normally distributed
+
+Distribution of oldpeak(ST depression induced by exercise relative to rest)
+```{r}
+ggplot(Heart_dataset, mapping = aes(oldpeak), fill = oldpeak)+
+  geom_histogram(binwidth = 1, color = "white", fill = "blue")+
+  xlab("oldpeak") +
+  ylab("Count") +
+  ggtitle("Analysis of oldpeak Distribution")
+```
+Oldpeak is left skewed
+
+Distribution of thalach(maximum heart rate achieved)
+```{r}
+ggplot(Heart_dataset, mapping = aes(thalach), fill = thalach)+
+  geom_histogram(binwidth = 2, color = "white", fill = "blue")+
+  xlab("thalach") +
+  ylab("Count") +
+  ggtitle("Analysis of thalach Distribution")
+```
+thalach- graph is right skewed
+Distribution of trestbps(resting blood pressure)
+```{r}
+ggplot(Heart_dataset, mapping = aes(trestbps), fill = trestbps)+
+  geom_histogram(binwidth = 2, color = "white", fill = "blue")+
+  xlab("trestbps") +
+  ggtitle("Analysis of trestbps Distribution")
+```
+Trestbps – graph is Normally distributed
+Distributions and relationships
+Analysis of Presence and Absence of Heart Disease
+```{r}
+ggplot(Heart_dataset, aes(x=target, fill = target)) +
+  geom_bar() +
+  xlab("Heart Disease") +
+  ylab("Count") +
+  ggtitle("Analysis of Presence and Absence of Heart Disease") +
+  scale_fill_discrete(name = "Heart Disease", labels = c("Heart disease", "No heart disease"))
+```
+There are more diseased patients than healthy in the dataset.
+
+Heart disease data distribution vs Gender
+```{r}
+Heart_dataset %>%
+  ggplot(aes(x=sex, fill = target))+
+  geom_bar()+
+  xlab("Gender") + 
+  ylab("Count")+
+  guides(fill = guide_legend(title = "Disease"))+
+  ggtitle("Heart disease data distribution vs Gender ")
+```
+Heart disease vs gender -- From the graph, we can observe that among disease patients, male are higher than female. But the ratio of heart disease to no heart disease is higher with Females in the samples collected. 
+
+Heart disease data distribution vs Age/Gender
+```{r}
+Heart_dataset %>%
+  ggplot(aes(x=Age,fill=sex))+
+  geom_bar()+
+  xlab("Age") + 
+  ylab("Number")+
+  guides(fill = guide_legend(title = "Gender"))
+```
+Heart disease data distribution vs Age
+```{r}
+Heart_dataset %>%
+  ggplot(aes(x=Age, fill = target))+
+  geom_bar()+
+  xlab("Age") + 
+  ylab("Count")+
+  guides(fill = guide_legend(title = "Target"))+
+  ggtitle("Heart disease data distribution vs Age")
+```
+Heart disease data distribution vs Chest pain type
+```{r}
+Heart_dataset %>%
+  ggplot(aes(x=cp, fill = target))+
+  geom_bar()+
+  xlab("chest Pain Type") + 
+  ylab("Count")+
+  guides(fill = guide_legend(title = "Disease"))+
+  ggtitle("Heart disease data distribution vs Chest pain type")
+```
+Heart disease vs chest pain type -- In the graph we can observe there are good number of heart disease patients with asymptomatic(without chest pain) condition and for the other two atypical and non-anginal pain, there are lot more patients with heart disease who are split almost evenly between the two..
+
+Heart disease data distribution vs Fasting blood sugar levels
+```{r}
+Heart_dataset %>%
+  ggplot(aes(x=fbs, fill = target))+
+  geom_bar()+
+  xlab("Fasting blood sugar levels") + 
+  ylab("Count")+
+  guides(fill = guide_legend(title = "Disease"))+
+  ggtitle("Heart disease data distribution vs Fasting blood sugar levels")
+```
+Analysis of fasting blood sugar vs disease -- fbs is a diabetes indicator with fbs >120 mg/d is considered diabetic. In the graph we observe that there are higher number of heart disease patient without diabetes.
+
+Heart disease data distribution vs Slope
+```{r}
+Heart_dataset %>%
+  ggplot(aes(x=slope, fill = target))+
+  geom_bar()+
+  xlab("Slope") + 
+  ylab("Count")+
+  guides(fill = guide_legend(title = "Disease"))+
+  ggtitle("Heart disease data distribution vs Slope")
+```
+Heart disease vs slope – In the graph below we see total number of samples being fewer in downsloping case, in flat slope, we can see we have lot more patients without heart disease and upsloping shows the exact opposite behavior.  
+
+Correlation Matrix
+```{r}
+correlation <- cor(Dataset[ , ])
+ggcorrplot::ggcorrplot(correlation, lab = T)
+corrplot::corrplot(correlation)
+```
+Correlation Matrix -- From the matrix, thalach, cp, slope shows good positive correlation with target variable. Fbs, chol, trestbps, restecg has low correlation with our target variable.
+
+Hypothesis Testing[one-sample]
+Claim 1: to test if a person has average BP value greater than 120 then it’s most likely that person has heart disease. 
+
+Hypothesis: 
+H0 (Null) : µBP <= 120  
+H1 (Alternate) : µBP > 120
+```{r}
+total_rows <- nrow(Heart_dataset)
+class(Heart_dataset$trestbps)
+Heart_dataset$trestbps <- as.numeric(Heart_dataset$trestbps)
+class(Heart_dataset$trestbps)
+
+null_variable <- 120
+
+mean_sample <- replicate(100, mean(sample(Heart_dataset$trestbps, total_rows*0.70, replace = TRUE)))
+
+sample_df <- data.frame(mean_sample, null_variable)
+
+p_value <- mean(mean_sample >= null_variable)
+
+t.test(Heart_dataset$trestbps, mu = null_variable, alternative = "greater")
+
+```
+p-value <2.2e-16
+Reject the Null hypothesis 
+Conclusion: As the p value is than 0.05 we conclude that the average BP value is greater than 120, hence a person with BP value more than 120 is more likely to have heart disease.
+
+Hypothesis Testing[Two_sample]
+Claim 2: to test if the average BP of a person with heart disease is greater than the average BP of the person without the heart disease. 
+Hypothesis: 
+H0 (Null) : µA – µB < = 0
+H1 (Alternate) : µA - µB > 0
+```{r}
+Heart_dataset$Age <- as.numeric(Heart_dataset$Age)
+Heart_dataset$target <- as.numeric(Heart_dataset$target)
+group_by(Heart_dataset, target)%>%
+  summarise(count = n(),
+            mean = mean(trestbps))
+
+Variance_test <- var.test(trestbps ~ target, data = Heart_dataset)
+t.test(trestbps ~ target, data = Heart_dataset, var.equal = TRUE, alternative = "greater")
+```
+p-value = 0.9942
+Fail to reject the null hypothesis
+Conclusion: As the p-value > 0.05 we failed to reject the hypothesis. So the claim of average BP of a person with heart disease is not necessarily greater than the average BP of the person with heart disease. 
+
+Data preprossing for anova
+creating a dataset with significant variables
+
+```{r}
+Dataset1 <- Dataset %>%
+  rename("Age"=ï..age)
+
+Heart_disease1 <- Dataset1 %>%
+  select(cp, chol, fbs, thalach, slope, target)
+Heart_disease3 <- Dataset1 %>%
+  select(cp, chol, fbs, thalach, slope, target, restecg)
+```
+
+Checking for missing values
+No missing values found
+```{r}
+sum(is.na(Heart_disease1))
+```
+
+Checking for Outliers in significant variables
+```{r}
+boxplot(Heart_disease1$cp, horizontal = TRUE)
+boxplot(Heart_disease1$slope, horizontal = TRUE)
+boxplot(Heart_disease1$thalach, horizontal = TRUE)
+boxplot(Heart_disease1$chol, horizontal = TRUE)
+```
+
+Checking for outliers in numerical variables with z-score method, grouped by whether the patient had heart disease
+```{r}
+repl <- function(x) {replace(x, abs(scale(x))>3, mean(x))}
+Heart_disease1$thalach <- ave(Heart_disease1$thalach, FUN = repl)
+Heart_disease1 %>% group_by(target) %>%  
+  ungroup()  %>%
+  select(cp) %>% 
+  scale() %>% 
+  abs() %>% 
+  (function(x) x>3) %>% 
+  sum()
+
+repl <- function(x) {replace(x, abs(scale(x))>3, mean(x))}
+Heart_disease1$cp <- ave(Heart_disease1$cp, FUN = repl)
+Heart_disease1 %>% group_by(target) %>%  
+  ungroup()  %>%
+  select(cp) %>% 
+  scale() %>% 
+  abs() %>% 
+  (function(x) x>3) %>% 
+  sum()
+
+repl <- function(x) {replace(x, abs(scale(x))>3, mean(x))}
+Heart_disease1$slope <- ave(Heart_disease1$slope, FUN = repl)
+Heart_disease1 %>% group_by(target) %>%  
+  ungroup()  %>%
+  select(slope) %>% 
+  scale() %>% 
+  abs() %>% 
+  (function(x) x>3) %>% 
+  sum()
+repl <- function(x) {replace(x, abs(scale(x))>3, mean(x))}
+Heart_disease1$fbs <- ave(Heart_disease1$fbs, FUN = repl)
+Heart_disease1 %>% group_by(target) %>%  
+  ungroup()  %>%
+  select(fbs) %>% 
+  scale() %>% 
+  abs() %>% 
+  (function(x) x>3) %>% 
+  sum()
+repl <- function(x) {replace(x, abs(scale(x))>3, mean(x))}
+Heart_disease1$chol <- ave(Heart_disease1$chol, FUN = repl)
+Heart_disease1 %>% group_by(target) %>%  
+  ungroup()  %>%
+  select(chol) %>% 
+  scale() %>% 
+  abs() %>% 
+  (function(x) x>3) %>% 
+  sum()
+```
+Replacing the outlier with mean
+
+```{r}
+repl <- function(x) {replace(x, abs(scale(x))>3, mean(x))}
+Heart_disease1$chol <- ave(Heart_disease1$chol, FUN = repl)
+```
+Checking that outliers were replaced
+
+```{r}
+sum(abs(scale(Heart_disease1$chol))>3)
+```
+Anova
+Hypothesis testing
+H0 (Null) : All means are equal
+H1 (Alternate) : atleast one or two means differ
+
+```{r}
+
+ANOVA_1 <- aov(Heart_disease1$target ~ factor(Heart_disease1$cp))
+summary(ANOVA_1)
+
+
+ANOVA_1b <- aov(Heart_disease1$thalach ~ factor(Heart_disease1$cp))
+summary(ANOVA_1b)
+
+```
+p-value is <0.05 which tells us that three gropus of chest pain means are different.
+
+Regression Analysis
+```{r}
+model <- glm(target ~ ., data = Heart_disease1,family = binomial(link = "logit"))
+model %>% summary()
+model 
+predict <- predict(model, type = "response")
+prop.table(table(Heart_disease1$target, predict > 0.5))
+```
+p values for the significant variables are lower than 0.05
+F1 score for the model is 80%
+
